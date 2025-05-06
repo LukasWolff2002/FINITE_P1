@@ -1,0 +1,7 @@
+Hay 2 tipos de formato de archivo .geo
+
+SetFactory("OpenCASCADE");
+SetFactory("Built-in");
+
+Funcionan practicamente igual, pero para lograr la misma figura se hace de forma distinta
+SetFactory("Built-in"); es como cuando hay que hacer muchos arcos
