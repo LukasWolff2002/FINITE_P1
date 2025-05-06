@@ -378,7 +378,13 @@ def optimize_topology_iterative_n_extremes(P, grupos, elements, nodes, rho, estr
 
         estructure = Solve(nodes, elements)
         apply_self_weight(elements, rho, estructure)
-        #apply_distributed_force(grupos["Fuerza"], fuerza_total_y=q, estructura=estructure)
+        #===========================================
+        #AGREGAR FUERZAS DISTRIBUIDAS
+        #grupo_nodos = grupos['Fuerza Y']
+        #fuerza_total_y = 1200 #N NO N/m
+        #apply_distributed_force_y(grupo_nodos, fuerza_total_y, estructure)
+        #===========================================
+
         estructure.solve()
 
         for node in estructure.nodes:
@@ -454,7 +460,12 @@ def optimize_topology_iterative_n_extremes(P, grupos, elements, nodes, rho, estr
                 # 🔁 Recalcular esfuerzos actualizados después de cambios de espesor
                 estructure = Solve(nodes, elements)
                 apply_self_weight(elements, rho, estructure)
-                #apply_distributed_force(grupos["Fuerza"], fuerza_total_y=q, estructura=estructure)
+                #===========================================
+                #AGREGAR FUERZAS DISTRIBUIDAS
+                #grupo_nodos = grupos['Fuerza Y']
+                #fuerza_total_y = 1200 #N NO N/m
+                #apply_distributed_force_y(grupo_nodos, fuerza_total_y, estructure)
+                #===========================================
                 estructure.solve()
                 von_mises = np.array([elem.von_mises_stress(estructure.u_global) for elem in elements])
 
@@ -534,15 +545,14 @@ def optimize_topology_iterative_n_extremes(P, grupos, elements, nodes, rho, estr
 
 def main (title, lc=10, self_weight=False, distribuited_force_x = False, distribuited_force_y = False, Topologic_Optimization = False, def_scale=1, force_scale=1e-2, reaction_scale=1e-2):
     
-    input_file = "MD_TERM_2024/mid_2024.geo"
-    output_file = "MD_TERM_2024/mid_2024.msh"
+    input_file = #"VIGA_DOBLE_T/doble_t.geo"
+    output_file =# "VIGA_DOBLE_T/doble_t.msh"
 
-    rho = #COMPLETAR AQUI #densidad, Kg/mm3
-    sigma_y_tension = #COMPLETAR AQUI #MPa
-    sigma_y_compression = #COMPLETAR AQUI
-    E = #COMPLETAR AQUI
-    nu = #COMPLETAR AQUI #coeficiente de poisson
-    thickness = #COMPLETAR AQUI #{"1": 500}
+    rho =  #densidad, Kg/mm3 OJOOOOOO
+    sigma_y_compression = 400 #MPa
+    sigma_y_tension = #Mpa
+    E = #Mpa
+    nu = #coeficiente de poisson
 
     if not (self_weight or distribuited_force_x or distribuited_force_y):
         raise ValueError("Al menos una de las opciones de carga debe ser True.")
@@ -550,13 +560,14 @@ def main (title, lc=10, self_weight=False, distribuited_force_x = False, distrib
     generate_mesh(input_file, output_file, lc)
 
     #Defino el nombre de los grupos restringidos en X e Y
-    restrxy = ['Restr XY'] #Si no hay hay que poner None
-    restrx = None
-    restry = None
+    restrxy = #['Restr XY 1', ....] #Si no hay hay que poner None
+    restrx = #None
+    restry = #None
 
     grupos, mesh = make_nodes_groups(output_file, title, restrxy=restrxy, restrx=restrx, restry=restry)
 
     #Defino el espesor de las secciones
+    thickness = #{'1': 115, '2': 120, '3': 120, '4': 120}, tiene que ser con numeros de Plane Surface
     sections, nodes_dict = make_sections(grupos, thickness, E, nu)
     elements, nodes = make_cst_elements(mesh, sections, nodes_dict)
 
@@ -570,15 +581,21 @@ def main (title, lc=10, self_weight=False, distribuited_force_x = False, distrib
 
     if distribuited_force_x:
         # Aplicar fuerza distribuida a los nodos
-        #grupo_nodos = grupos['']
-        #fuerza_total_X = #N NO N/m
-        #apply_distributed_force_x(grupo_nodos, fuerza_total_X, estructure)
+        #grupo_nodos = grupos['Fuerza X']
+        #fuerza_total_x = 1200 #N NO N/m
+        #apply_distributed_force_x(grupo_nodos, fuerza_total_x, estructure)
+        #grupo_nodos = grupos['Fuerza X 2']
+        #fuerza_total_x = 1200 #N NO N/m
+        #apply_distributed_force_x(grupo_nodos, fuerza_total_x, estructure)
         pass
 
     if distribuited_force_y:
         # Aplicar fuerza distribuida a los nodos
-        #grupo_nodos = grupos['']
-        #fuerza_total_y = #N NO N/m
+        #grupo_nodos = grupos['Fuerza Y']
+        #fuerza_total_y = 1200 #N NO N/m
+        #apply_distributed_force_y(grupo_nodos, fuerza_total_y, estructure)
+        #grupo_nodos = grupos['Fuerza Y 2']
+        #fuerza_total_y = 120 #N NO N/m
         #apply_distributed_force_y(grupo_nodos, fuerza_total_y, estructure)
         pass
 
@@ -593,11 +610,11 @@ def main (title, lc=10, self_weight=False, distribuited_force_x = False, distrib
                     nodes=nodes,
                     rho=rho,
                     estructure=estructure,
-                    num_iterations=30,
-                    num_elements=10,        
+                    num_iterations=100,
+                    num_elements=60,        
                     delta_t=0.2,
-                    t_min=1,
-                    t_max=30.0,
+                    t_min=110,
+                    t_max=125,
                     E=E,
                     nu=nu
                 )
@@ -611,11 +628,12 @@ def main (title, lc=10, self_weight=False, distribuited_force_x = False, distrib
 
         vm_nodal = compute_nodal_von_mises(estructure.elements, estructure.u_global)
         plot_von_mises_field(estructure.nodes, estructure.elements, vm_nodal, title+'_topo')
-   
+
+    
 if __name__ == "__main__":
-    title = #COMPLETAR AQUI
-    lc = #COMPLETAR AQUI
-    main(title, lc, self_weight=True, distribuited_force_x = False, distribuited_force_y = True, Topologic_Optimization=False, def_scale=1000, force_scale=1e-6, reaction_scale=5e-3)
+    title = 'VIGA_DOBLE_T/Results' #Debe estar gentro de la carpeta GRAFICOS
+    lc = 10
+    main(title, lc, self_weight=True, distribuited_force_x = False, distribuited_force_y = False, Topologic_Optimization=False, def_scale=1000, force_scale=1e-2, reaction_scale=5e-3)
 
 
 

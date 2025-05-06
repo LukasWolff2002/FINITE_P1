@@ -110,6 +110,7 @@ class Solve:
         return self.reactions
     
     def print_applied_forces(self):
+    
 
         # Usa f_original si existe, si no, usa f_global
         f = self.f_original if hasattr(self, 'f_original') else self.f_global
