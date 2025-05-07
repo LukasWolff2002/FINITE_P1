@@ -411,3 +411,54 @@ class Quad2D:
         ax.grid(True)
         
         plt.show()
+
+
+#Lets create a test for the class
+
+if __name__ == "__main__":
+    from nodes import Node
+    from material import Material
+
+    #Create nodes
+    node1 = Node(1, [0, 0])
+    node2 = Node(2, [2, -1])
+    node3 = Node(3, [2.5, 1.5])
+    node4 = Node(4, [0.2, 1.8])
+
+    node_list = [node1, node2, node3, node4]
+
+    #Create material
+    E = 210e9  # Young's modulus in Pascals
+    nu = 0.3  # Poisson's ratio
+
+    material = Material(E, nu, gamma=0)
+
+    thickness = 0.01  # Thickness in meters
+    
+    class Membrane:
+        def __init__(self, thickness, material):
+            self.thickness = thickness
+            self.material = material
+
+    membrane = Membrane(thickness, material)
+    #Create element
+    elementTag = 1
+    quad_element = Quad2D(elementTag, node_list, membrane, type='planeStress', samplingPoints=3, load_direction=[0, 0], eval_points=[0, 0])
+    #Print element properties
+    print(f"Element Tag: {quad_element.elementTag}")
+    print(f"Node List: {[node.name for node in quad_element.node_list]}")
+    print(f"Thickness: {quad_element.thickness}")
+
+    print(f"Material Properties: {quad_element.material.get_properties()}")
+    print(f"Sampling Points: {quad_element.samplingPoints}")
+    print(f"Load Direction: {quad_element.load_direction}")
+    print(f"Area: {quad_element.A}")
+    print(f"Stiffness Matrix: {quad_element.Kg}")
+    print(f"Global Force Vector: {quad_element.F_fe_global}")
+
+    
+
+
+
+
+    

@@ -629,14 +629,8 @@ def main (title, lc=10, self_weight=False, distribuited_force_x = False, distrib
     vm_nodal = compute_nodal_von_mises(estructure.elements, estructure.u_global)
 
     vm_nodal = np.array(list(vm_nodal.values()))
-
-
-    
     
     return vm_nodal.max(), elapsed_time
-
-    
-    
     
 if __name__ == "__main__":
     title = 'Convergencia' #Debe estar gentro de la carpeta GRAFICOS
