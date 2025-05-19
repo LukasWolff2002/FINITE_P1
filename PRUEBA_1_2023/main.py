@@ -52,7 +52,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import gmsh
 import meshio
-import time
 
 #Librerias creadas
 from nodes import Node
@@ -102,6 +101,7 @@ def make_nodes_groups(output_file, title, restrxy=None, restrx=None, restry=None
             nombre = tag_to_name.get(tag, f"{tag}")
             if nombre not in grupos:
                 grupos[nombre] = []
+                
             for node_id in line:
                 x, y = mesh.points[node_id][:2]
                 restrain = [0, 0]
@@ -111,6 +111,11 @@ def make_nodes_groups(output_file, title, restrxy=None, restrx=None, restry=None
                     restrain = [1, 0]
                 elif restry is not None and nombre in restry:
                     restrain = [0, 1]
+
+                
+          
+                if x == 2600 and y == 1600:
+                    restrain = [1, 0]
                 grupos[nombre].append(Node(node_id + 1, x, y, restrain=restrain))
 
     # Eliminar duplicados dentro de cada grupo
@@ -130,7 +135,7 @@ def make_sections(grupos, thickness, E, nu):
 
     # Propiedades del material (ortotrópico PLA impreso)
     for group in thickness:
-        sections[group] = Section(thickness[group], E, nu)
+        sections[group] = Section(thickness[group], E, nu, type='planeStrain')
 
     # Diccionario global de nodos para búsqueda por ID
     nodes_dict = {}
@@ -544,33 +549,16 @@ def optimize_topology_iterative_n_extremes(P, grupos, elements, nodes, rho, estr
 
     return estructure
 
-def compute_nodal_von_mises(elements, u_global):
-        """
-        Promedia los esfuerzos de Von Mises en los nodos a partir de los elementos vecinos.
-        """
-        nodal_vm = {}  # node.id : [list of vm from attached elements]
-
-        for elem in elements:
-            vm = elem.von_mises_stress(u_global)
-            for node in elem.node_list:
-                if node.id not in nodal_vm:
-                    nodal_vm[node.id] = []
-                nodal_vm[node.id].append(vm)
-
-        # Promedio por nodo
-        nodal_vm_avg = {node_id: np.mean(vms) for node_id, vms in nodal_vm.items()}
-        return nodal_vm_avg
-
 def main (title, lc=10, self_weight=False, distribuited_force_x = False, distribuited_force_y = False, Topologic_Optimization = False, def_scale=1, force_scale=1e-2, reaction_scale=1e-2):
     
-    input_file = 'CST_Element/test_cst.geo'#"VIGA_DOBLE_T/doble_t.geo"
-    output_file = 'CST_Element/test_cst.msh'# "VIGA_DOBLE_T/doble_t.msh"
+    input_file = "PRUEBA_1_2023/geo.geo"#"VIGA_DOBLE_T/doble_t.geo"
+    output_file ="PRUEBA_1_2023/msh.msh"# "VIGA_DOBLE_T/doble_t.msh"
 
-    rho =  7200e-9#densidad, Kg/mm3 OJOOOOOO
-    sigma_y_compression = 400 #MPa
-    sigma_y_tension = 400#Mpa
-    E = 200000#Mpa
-    nu = 0.3#coeficiente de poisson
+    rho =  2500e-9#densidad, Kg/mm3 OJOOOOOO
+    sigma_y_compression = 30 #MPa
+    sigma_y_tension = 3#Mpa
+    E = 35000#Mpa
+    nu = 0.2#coeficiente de poisson
 
     if not (self_weight or distribuited_force_x or distribuited_force_y):
         raise ValueError("Al menos una de las opciones de carga debe ser True.")
@@ -578,14 +566,14 @@ def main (title, lc=10, self_weight=False, distribuited_force_x = False, distrib
     generate_mesh(input_file, output_file, lc)
 
     #Defino el nombre de los grupos restringidos en X e Y
-    restrxy = ["Restr XY"]#['Restr XY 1', ....] #Si no hay hay que poner None
-    restrx = None
+    restrxy = ["Restr 3"]#['Restr XY 1', ....] #Si no hay hay que poner None
+    restrx = ["Restr 1", "Restr 2"]
     restry = None
 
     grupos, mesh = make_nodes_groups(output_file, title, restrxy=restrxy, restrx=restrx, restry=restry)
 
     #Defino el espesor de las secciones
-    thickness = {"1":20, "2": 10}#{'1': 115, '2': 120, '3': 120, '4': 120}, tiene que ser con numeros de Plane Surface
+    thickness = {'1':3}#{'1': 115, '2': 120, '3': 120, '4': 120}, tiene que ser con numeros de Plane Surface
     sections, nodes_dict = make_sections(grupos, thickness, E, nu)
     elements, nodes = make_cst_elements(mesh, sections, nodes_dict)
 
@@ -599,7 +587,7 @@ def main (title, lc=10, self_weight=False, distribuited_force_x = False, distrib
 
     if distribuited_force_x:
         # Aplicar fuerza distribuida a los nodos
-        #grupo_nodos = grupos['Fuerza X']
+        #rupo_nodos = grupos['Force']
         #fuerza_total_x = 1200 #N NO N/m
         #apply_distributed_force_x(grupo_nodos, fuerza_total_x, estructure)
         #grupo_nodos = grupos['Fuerza X 2']
@@ -609,68 +597,49 @@ def main (title, lc=10, self_weight=False, distribuited_force_x = False, distrib
 
     if distribuited_force_y:
         # Aplicar fuerza distribuida a los nodos
-        #grupo_nodos = grupos['Fuerza Y']
-        #fuerza_total_y = 1200 #N NO N/m
-        #apply_distributed_force_y(grupo_nodos, fuerza_total_y, estructure)
+        grupo_nodos = grupos['Force']
+        fuerza_total_y = 52*1000 #N NO N/m
+        apply_distributed_force_y(grupo_nodos, fuerza_total_y, estructure)
         #grupo_nodos = grupos['Fuerza Y 2']
         #fuerza_total_y = 120 #N NO N/m
         #apply_distributed_force_y(grupo_nodos, fuerza_total_y, estructure)
         pass
 
-    start_time = time.time()  # Guarda el tiempo inicial
-    estructure.solve()
-    end_time = time.time()  # Guarda el tiempo después de ejecutar
-    elapsed_time = end_time - start_time  # Calcula la diferencia
+    plot_results(estructure, elements, title, def_scale=def_scale, force_scale=force_scale, reaction_scale=reaction_scale, sigma_y_tension=sigma_y_tension, sigma_y_compression=sigma_y_compression)
 
-    # Importante: guardar los desplazamientos en cada nodo
-    for node in estructure.nodes:
-        node.structure = estructure  # para acceder a u_global desde cada nodo
+    if Topologic_Optimization:
+        if not self_weight:
+            raise ValueError("La optimización topológica requiere aplicar el peso propio.")
+        estructure = optimize_topology_iterative_n_extremes(P=P,
+                    grupos=grupos,
+                    elements=elements,
+                    nodes=nodes,
+                    rho=rho,
+                    estructure=estructure,
+                    num_iterations=100,
+                    num_elements=60,        
+                    delta_t=0.2,
+                    t_min=110,
+                    t_max=125,
+                    E=E,
+                    nu=nu
+                )
+        
+        plot_elements_by_thickness(estructure.elements, title)
 
-    vm_nodal = compute_nodal_von_mises(estructure.elements, estructure.u_global)
+        # Importante: guardar los desplazamientos en cada nodo
+        for node in estructure.nodes:
+            node.structure = estructure  # para acceder a u_global desde cada nodo
 
-    vm_nodal = np.array(list(vm_nodal.values()))
-    
-    return vm_nodal.max(), elapsed_time
+
+        vm_nodal = compute_nodal_von_mises(estructure.elements, estructure.u_global)
+        plot_von_mises_field(estructure.nodes, estructure.elements, vm_nodal, title+'_topo')
+
     
 if __name__ == "__main__":
-    title = 'Convergencia' #Debe estar gentro de la carpeta GRAFICOS
-    LC = [20, 10, 5, 1, 0.8, 0.6, 0.4, 0.3]
-    Von_mises = []
-    von_mises = []
-    Tiempo = []
-
-    for lc in LC:
-        resultados = main(title, lc, self_weight=True, distribuited_force_x = False, distribuited_force_y = False, Topologic_Optimization=False, def_scale=1000, force_scale=1e-2, reaction_scale=5e-3)
-        vm = resultados[0]
-        tiempo = resultados[1]
-        Von_mises.append(vm)
-        Tiempo.append(tiempo)
-
-    
-    for lc, vm in zip(LC, Von_mises):
-        von_mises.append(vm)
-
-
-    fig, ax1 = plt.subplots()
-
-    # Primer eje Y: Von Mises
-    ax1.set_xlabel('Characteristic Length (LC)')
-    ax1.set_ylabel('Von Mises Stress (MPa)', color='tab:red')
-    ax1.set_xscale('log')  # Logarithmic scale on X axis
-    ax1.plot(LC, von_mises, color='tab:red', marker='o', label='Von Mises')
-    ax1.tick_params(axis='y', labelcolor='tab:red')
-
-    # Segundo eje Y: Tiempo
-    ax2 = ax1.twinx()
-    ax2.set_ylabel('Execution Time (s)', color='tab:blue')
-    ax2.plot(LC, Tiempo, color='tab:blue', marker='s', label='Time')
-    ax2.tick_params(axis='y', labelcolor='tab:blue')
-
-    plt.title('Convergence of Von Mises Stress and Execution Time vs LC')
-    fig.tight_layout()
-    plt.grid(True)
-    plt.savefig('GRAFICOS/convergence.png', dpi=300)
-    
+    title = '2023/Results' #Debe estar gentro de la carpeta GRAFICOS
+    lc = 50
+    main(title, lc, self_weight=True, distribuited_force_x = False, distribuited_force_y = True, Topologic_Optimization=False, def_scale=100, force_scale=1e-1, reaction_scale=5e-3)
 
 
 

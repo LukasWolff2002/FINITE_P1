@@ -563,14 +563,14 @@ def compute_nodal_von_mises(elements, u_global):
 
 def main (title, lc=10, self_weight=False, distribuited_force_x = False, distribuited_force_y = False, Topologic_Optimization = False, def_scale=1, force_scale=1e-2, reaction_scale=1e-2):
     
-    input_file = 'CST_Element/test_cst.geo'#"VIGA_DOBLE_T/doble_t.geo"
-    output_file = 'CST_Element/test_cst.msh'# "VIGA_DOBLE_T/doble_t.msh"
+    input_file = "PRUEBA_1_2023/geo.geo"#"VIGA_DOBLE_T/doble_t.geo"
+    output_file ="PRUEBA_1_2023/msh.msh"# "VIGA_DOBLE_T/doble_t.msh"
 
-    rho =  7200e-9#densidad, Kg/mm3 OJOOOOOO
-    sigma_y_compression = 400 #MPa
-    sigma_y_tension = 400#Mpa
-    E = 200000#Mpa
-    nu = 0.3#coeficiente de poisson
+    rho =  2500e-9#densidad, Kg/mm3 OJOOOOOO
+    sigma_y_compression = 30 #MPa
+    sigma_y_tension = 3#Mpa
+    E = 35000#Mpa
+    nu = 0.2#coeficiente de poisson
 
     if not (self_weight or distribuited_force_x or distribuited_force_y):
         raise ValueError("Al menos una de las opciones de carga debe ser True.")
@@ -578,14 +578,14 @@ def main (title, lc=10, self_weight=False, distribuited_force_x = False, distrib
     generate_mesh(input_file, output_file, lc)
 
     #Defino el nombre de los grupos restringidos en X e Y
-    restrxy = ["Restr XY"]#['Restr XY 1', ....] #Si no hay hay que poner None
-    restrx = None
+    restrxy = ["Restr 3", "Restr 1", "Restr 2"]#['Restr XY 1', ....] #Si no hay hay que poner None
+    restrx = None#[]
     restry = None
 
     grupos, mesh = make_nodes_groups(output_file, title, restrxy=restrxy, restrx=restrx, restry=restry)
 
     #Defino el espesor de las secciones
-    thickness = {"1":20, "2": 10}#{'1': 115, '2': 120, '3': 120, '4': 120}, tiene que ser con numeros de Plane Surface
+    thickness = {'1':3}#{'1': 115, '2': 120, '3': 120, '4': 120}, tiene que ser con numeros de Plane Surface
     sections, nodes_dict = make_sections(grupos, thickness, E, nu)
     elements, nodes = make_cst_elements(mesh, sections, nodes_dict)
 
@@ -634,12 +634,15 @@ def main (title, lc=10, self_weight=False, distribuited_force_x = False, distrib
     
 if __name__ == "__main__":
     title = 'Convergencia' #Debe estar gentro de la carpeta GRAFICOS
-    LC = [20, 10, 5, 1, 0.8, 0.6, 0.4, 0.3]
+    LC = [20000,10000,4000,2000, 1500, 1000, 500, 200, 100, 50, 20] #Longitud de caracteristica
     Von_mises = []
     von_mises = []
     Tiempo = []
 
     for lc in LC:
+        print('------------------------')
+        print(f'LC: {lc}')
+        print('------------------------')
         resultados = main(title, lc, self_weight=True, distribuited_force_x = False, distribuited_force_y = False, Topologic_Optimization=False, def_scale=1000, force_scale=1e-2, reaction_scale=5e-3)
         vm = resultados[0]
         tiempo = resultados[1]

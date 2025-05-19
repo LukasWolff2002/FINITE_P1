@@ -287,7 +287,7 @@ class Quad2D:
             ue (ndarray): Displacement vector of the element.
         """
         index = self.index
-        ue = u[index]
+        ue = u.flatten()  # Convertir u en un vector plano (8x1) si es necesario
         return ue
     
     def get_element_strains(self, u):
@@ -304,6 +304,9 @@ class Quad2D:
         ue = self.get_element_displacements(u)
         eval_point=self.eval_points
         B, _, _, _ = self.calculate_B_matrix(eval_point[0],eval_point[1])
+        print(f"ue shape: {ue.shape}")
+        print(f"B shape: {B.shape}")
+
         epsilon_e = B @ ue
         return epsilon_e, ue
     
@@ -319,7 +322,9 @@ class Quad2D:
             epsilon_e (ndarray): Strain vector of the element.
             ue (ndarray): Displacement vector of the element.
         """
+        
         epsilon_e, ue = self.get_element_strains(u)
+        
         sigma_e = self.material.Emat @ epsilon_e
         return sigma_e, epsilon_e, ue
     
@@ -350,9 +355,11 @@ class Quad2D:
         Returns:
             principal_stress (ndarray): Principal stresses of the element.
         """
-        sx = sigma[0][0]
-        sy = sigma[1][0]
-        sxy = sigma[2][0]
+        print(f"{sigma=}")
+        sx = sigma[0]  # Primero esfuerzo (tensión normal en x)
+        sy = sigma[1]  # Segundo esfuerzo (tensión normal en y)
+        sxy = sigma[2]  # Esfuerzo cortante (xy)
+
         
         stress_matrix = np.array([[sx, sxy], [sxy, sy]])
         eigenvalues, _ = np.linalg.eig(stress_matrix)
@@ -372,9 +379,9 @@ class Quad2D:
         Returns:
             principal_strain (ndarray): Principal strains of the element.
         """
-        ex = epsilon[0][0]
-        ey = epsilon[1][0]
-        exy = epsilon[2][0]
+        ex = epsilon[0]
+        ey = epsilon[1]
+        exy = epsilon[2]
         
         strain_matrix = np.array([[ex, exy], [exy, ey]])
         eigenvalues, _ = np.linalg.eig(strain_matrix)
@@ -420,10 +427,10 @@ if __name__ == "__main__":
     from material import Material
 
     #Create nodes
-    node1 = Node(1, [0, 0])
-    node2 = Node(2, [2, -1])
-    node3 = Node(3, [2.5, 1.5])
-    node4 = Node(4, [0.2, 1.8])
+    node1 = Node(1, [3,0])
+    node2 = Node(2, [9,0])
+    node3 = Node(3, [0,9])
+    node4 = Node(4, [0,3])
 
     node_list = [node1, node2, node3, node4]
 
@@ -456,6 +463,31 @@ if __name__ == "__main__":
     print(f"Stiffness Matrix: {quad_element.Kg}")
     print(f"Global Force Vector: {quad_element.F_fe_global}")
 
+    #Visualizo el elemento
+    #quad_element.element_visualization(offset=0.1)
+
+    #Le aplico una fuersa
+    # Asumiendo que 'node_list' tiene 4 nodos y cada uno tiene 2 grados de libertad (x, y)
+    u = np.array([[2,0],  # Desplazamientos para el nodo 1 (x, y)
+              [3,0],  # Desplazamientos para el nodo 2 (x, y)
+              [0,-3],  # Desplazamientos para el nodo 3 (x, y)
+              [0,-2]]) # Desplazamientos para el nodo 4 (x, y)
+
+    # Verificamos las formas de 'ue' y 'B'
+    
+
+    # Calculamos los esfuerzos y deformaciones
+    sigma_e, epsilon_e, ue = quad_element.get_element_stress(u)
+    principal_stress = quad_element.calculate_principal_stress(sigma_e)
+    principal_strain = quad_element.calculate_principal_strain(epsilon_e)
+
+    quad_element.set_results(sigma_e, epsilon_e, ue, principal_stress, principal_strain)
+
+    print(f"Stress: {quad_element.sigma}")
+    print(f"Strain: {quad_element.epsilon}")
+    print(f"Displacement: {quad_element.displacement}")
+    print(f"Principal Stress: {quad_element.principal_stress}")
+    print(f"Principal Strain: {quad_element.principal_strain}")
     
 
 

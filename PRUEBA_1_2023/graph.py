@@ -853,7 +853,7 @@ def plot_results (estructure, elements, title, def_scale=1, force_scale=1e-2, re
 
     plot_applied_forces(estructure.nodes, elements,title, f, scale=force_scale)
 
-    
+    desplazamientos = estructure.solve()
 
     # Importante: guardar los desplazamientos en cada nodo
     for node in estructure.nodes:

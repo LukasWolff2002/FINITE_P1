@@ -169,9 +169,9 @@ def plot_deformed_structure(elements, title, scale=1.0, show_ids=False):
     fig, ax = plt.subplots(figsize=(8, 6))
     triang = mtri.Triangulation(points[:, 0], points[:, 1], triangles)
 
-    tpc = ax.tripcolor(triang, displacements, shading='gouraud', cmap='viridis')
+    tpc = ax.tripcolor(triang, displacements/10, shading='gouraud', cmap='viridis')
     cb = plt.colorbar(tpc, ax=ax)
-    cb.set_label('Displacement magnitude mm')
+    cb.set_label('Displacement magnitude cm')
 
     ax.set_aspect('equal')
     ax.set_title(f"Estructura deformada (×{scale}) - Mapa de calor")
@@ -476,6 +476,7 @@ def plot_all_scalar_fields_separately(nodes, elements, nodal_fields, title_prefi
     """
     σxx, σyy, τxy, εxx, εyy, γxy = {}, {}, {}, {}, {}, {}
 
+    # Llenar los diccionarios con los valores de las tensiones y deformaciones
     for node_id, (sigma, epsilon) in nodal_fields.items():
         σxx[node_id] = sigma[0]
         σyy[node_id] = sigma[1]
@@ -483,6 +484,20 @@ def plot_all_scalar_fields_separately(nodes, elements, nodal_fields, title_prefi
         εxx[node_id] = epsilon[0]
         εyy[node_id] = epsilon[1]
         γxy[node_id] = epsilon[2]
+
+    # Función para imprimir los valores máximos y mínimos
+    def print_min_max(field, name):
+        max_value = max(field.values())
+        min_value = min(field.values())
+        print(f"{name} - Max: {max_value:.2f}, Min: {min_value:.2f}")
+
+    # Imprimir los valores máximos y mínimos de cada campo
+    print_min_max(σxx, r"$\sigma_{xx}$ (MPa)")
+    print_min_max(σyy, r"$\sigma_{yy}$ (MPa)")
+    print_min_max(τxy, r"$\tau_{xy}$ (MPa)")
+    print_min_max(εxx, r"$\epsilon_{xx}$")
+    print_min_max(εyy, r"$\epsilon_{yy}$")
+    print_min_max(γxy, r"$\gamma_{xy}$")
 
     plot_scalar_field(nodes, elements, σxx, r"$\sigma_{xx}$ (MPa)", f"{title_prefix} - sigma_xx")
     plot_scalar_field(nodes, elements, σyy, r"$\sigma_{yy}$ (MPa)", f"{title_prefix} - sigma_yy")
@@ -853,7 +868,35 @@ def plot_results (estructure, elements, title, def_scale=1, force_scale=1e-2, re
 
     plot_applied_forces(estructure.nodes, elements,title, f, scale=force_scale)
 
-    
+    desplazamientos = estructure.solve()  # Resuelve la estructura y obtiene los desplazamientos
+
+    # Inicializamos la variable para almacenar el máximo desplazamiento vertical
+    max_desplazamiento_vertical = 0
+    min_desplazamiento_vertical = 0
+
+    # Iteramos sobre los nodos de la estructura
+    for node in estructure.nodes:
+        # El índice para el desplazamiento en y (vertical) será el índice impar de los DOF
+        # Asumimos que el desplazamiento en y está en el índice impar correspondiente al nodo
+        desplazamiento_vertical = desplazamientos[node.dofs[1]]  # DOF[1] es el desplazamiento en y (vertical)
+
+        # Comprobamos si este es el mayor desplazamiento vertical encontrado
+        if desplazamiento_vertical < max_desplazamiento_vertical:
+            max_desplazamiento_vertical = desplazamiento_vertical
+
+        if desplazamiento_vertical > min_desplazamiento_vertical:
+            min_desplazamiento_vertical = desplazamiento_vertical
+
+        # Si deseas imprimir el desplazamiento de un nodo específico, puedes hacerlo aquí:
+        if node.x == 2800 and node.y == 1600:
+            print(f"Desplazamiento en nodo {node.id}: x = {node.x}, y = {node.y}")
+            print(f"Desplazamiento x: {desplazamientos[node.dofs[0]][0]}, y: {desplazamientos[node.dofs[1]][0]} mm")
+
+    # Imprimir el desplazamiento máximo vertical
+    print(f"El desplazamiento máximo vertical es {max_desplazamiento_vertical} mm")
+    print(f"El desplazamiento mínimo vertical es {min_desplazamiento_vertical} mm")
+
+
 
     # Importante: guardar los desplazamientos en cada nodo
     for node in estructure.nodes:
